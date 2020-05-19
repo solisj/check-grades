@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head>
+    <link rel='stylesheet' type='text/css' href='style.css'>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        //add function to recursively update scores of assignments
+        jQuery.fn.extend({
+            /* update score of assignment
+             * and return the new score
+             */
+            updateScore: function() {
+                if ($(this).hasClass("detailedAssignment")) {
+                    let weightedFractions = Array();
+                    let weights = Array();
+
+                    //recursively update and get values of descendants
+                    $(this).next().children('td:eq(1)').children().each(function() {
+                        if ($(this).hasClass("detailedAssignment") || $(this).hasClass("basicAssignment")) {
+                            var score_i = $(this).updateScore();
+                            var total_i = parseFloat($(this).children('.total').text());
+                            var weight_i = parseFloat($(this).children('.weight').text());
+
+                            weightedFractions.push(score_i/total_i*weight_i);
+                            weights.push(weight_i);
+                        }
+                    });
+
+                    /* then update self
+                     * 
+                     * new score is calculated as follows:
+                     * overallScore = sum(score_i/total_i*weight_i)/sum(weight_i) * overallTotal
+                     * 
+                     * basically, get "weighted fractions" and divide by overall weight to get overall fraction
+                     * then multiply by the overall "total" to get the new score
+                     */
+
+                    var overallFraction = weightedFractions.reduce((a, b) => a + b, 0) /
+                                            weights.reduce((a, b) => a + b, 0);
+                    var total = parseFloat($(this).children('.total').text());   
+                        
+                    var score = overallFraction * total;
+
+                    //also replace the value the user sees
+                    $(this).children('.score').text(score);
+
+                    return score;
+                } else if ($(this).hasClass("basicAssignment")) {
+                    var score = parseFloat($(this).children('.score').text());
+                    return (Number.isNaN(score) ? 0 : score);
+                } else {
+                    return 0;
+                }
+            }
+        });
+        $('#table').on('click', '.buttonDelete', function() {
+            var currentRow = $(this).closest('tr');
+            if (currentRow.hasClass("detailedAssignment") && currentRow.siblings().length > 1) {
+                currentRow.next().remove();
+                currentRow.remove();
+            }
+            $(this).closest('tr').remove();
+        });
+        $('#table').on('click', '.buttonAddBasicAssignment', function() {
+            $(this).closest('tr').next().children('td:eq(1)').append(
+                '<tr class="basicAssignment">' +
+                '<td class="name" contenteditable="true">part1</td>' +
+                '<td>Score:</td>' +
+                '<td class="score" contenteditable="true">100</td>' +
+                '<td>/</td>' +
+                '<td class="total" contenteditable="true">100</td>' +
+                '<td>Weight:</td>' +
+                '<td class="weight" contenteditable="true">10</td>' +
+                '<td><button class="buttonDelete">Delete</button></td>' +
+                '</tr>'
+                );
+        });
+        $('#table').on('click', '.buttonAddDetailedAssignment', function() {
+            $(this).closest('tr').next().children('td:eq(1)').append(
+                '<tr class="detailedAssignment">' +
+                    '<td class="name" contenteditable="true">Final</td>' +
+                    '<td>Score:</td>' +
+                    '<td class="score">100</td>' +
+                    '<td>/</td>' +
+                    '<td class="total" contenteditable="true">100</td>' +
+                    '<td>Weight: </td>' +
+                    '<td class="weight" contenteditable="true">10</td>' +
+                    '<td><button class="buttonDelete">Delete</button></td>' +
+                    '<td><button class="buttonAddBasicAssignment">Add Basic Assignment</button></td>' +
+                    '<td><button class="buttonAddDetailedAssignment">Add Detailed Assignment</button></td>' +
+                '</tr>' +
+                '<tr><td>></td><td></td></tr>'
+                );
+        });
+        $('#table').on('input', function(e) {
+            //the table rows are three generations in
+            $(this).children().children().children().each(function() {
+                console.log('new scores: ');
+                //console.log($(this).text());
+                console.log($(this).updateScore());
+            });
+        });
+    });
+</script>
+</head>
+<body>
+<div class="container">
+    <h1>Table (hopefully)</h1>
+    <div id ="table" class="table-editable">
+        <table class="table">
+            <tr class="detailedAssignment">
+                <td class="name" contenteditable="true">Overall</td>
+                <td>Score:</td>
+                <td class="score">100</td>
+                <td>/</td>
+                <td class="total" contenteditable="true">100</td>
+                <!--<td>Weight:</td>
+                <td class="weight">10</td>>-->
+                <td>
+                    <button class="buttonDelete" disabled>Delete</button>
+                </td>
+                <td>
+                    <button class="buttonAddBasicAssignment">Add Basic Assignment</button>
+                </td>
+                <td>
+                    <button class="buttonAddDetailedAssignment">Add Detailed Assignment</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    >
+                </td>
+                <td>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+</body>
